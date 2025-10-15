@@ -1,0 +1,16 @@
+{
+  "name": "chinese-whispers",
+  "version": "1.0.0",
+  "description": "Desktop app for API key management",
+  "license": "ISC",
+  "author": "Meenakshi Pradeep",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "electron": "^38.2.2"
+  }
+}
