@@ -1,0 +1,57 @@
+CREATE TABLE api_tokens (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	token_name TEXT NOT NULL,
+	service_name TEXT NOT NULL,
+	token_value TEXT NOT NULL,
+	description TEXT,
+	token_type TEXT NOT NULL CHECK(token_type IN ('API_KEY', 'OAUTH', 'JWT', 'PERSONAL_ACCESS_TOKEN', 'OTHER')),
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expiry_date DATETIME,
+    is_active BOOLEAN DEFAULT 1
+);
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE TABLE notification_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_id INTEGER NOT NULL,
+    notify_days_before INTEGER DEFAULT 7,  -- Notify 7 days before expiry
+    notification_enabled BOOLEAN DEFAULT 1,
+    last_notification_sent DATETIME,
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE
+);
+CREATE TABLE notification_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_id INTEGER NOT NULL,
+    notification_type TEXT CHECK(notification_type IN ('EXPIRY_WARNING', 'EXPIRED', 'CUSTOM')),
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    message TEXT,
+    was_acknowledged BOOLEAN DEFAULT 0,
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE
+);
+CREATE TABLE tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tag_name TEXT NOT NULL UNIQUE,
+    color TEXT DEFAULT '#3B82F6',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE token_tags (
+    token_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (token_id, tag_id),
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+CREATE TABLE audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_id INTEGER,
+    action TEXT NOT NULL CHECK(action IN ('CREATE', 'READ', 'UPDATE', 'DELETE', 'EXPORT', 'COPY')),
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    details TEXT,
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_tokens_expiry ON api_tokens(expiry_date) WHERE is_active = 1;
+CREATE TRIGGER update_token_timestamp 
+AFTER UPDATE ON api_tokens
+BEGIN
+    UPDATE api_tokens SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
