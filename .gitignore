@@ -7,8 +7,9 @@ npm-debug.log*
 # Build artifacts
 dist/
 *.db
-models/
+models-test/
 chinese_whispers.db
+src/models/tokenModels.test.js
 
 # Logs
 *.log
