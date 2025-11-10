@@ -1,6 +1,6 @@
 const db = require('./db');
 
-exports.getTokens = () => {
+function getTokens() {
     return new Promise((resolve, reject) => {
         const sql = "SELECT * FROM api_tokens";
         db.all(sql, [], (err, rows) => {
@@ -23,11 +23,9 @@ exports.getTokens = () => {
     });
 }
 
-exports.updateToken = (id, updates) => {
+function updateToken(id, updates) {
     return new Promise((resolve, reject) => {
-        const sql = `UPDATE api_tokens 
-                    SET token_name = ?, service_name = ?, token_value = ?, description = ?, token_type = ?, expiry_date = ?, 
-                    WHERE id = ?`;
+        const sql = `UPDATE api_tokens SET token_name = ?, service_name = ?, token_value = ?, description = ?, token_type = ?, expiry_date = ? WHERE id = ?`;
         const params = [
             updates.tokenName,
             updates.serviceName, 
@@ -51,7 +49,7 @@ exports.updateToken = (id, updates) => {
     });
 }
 
-exports.addToken = (tokenData) => {
+function addToken(tokenData) {
     return new Promise((resolve, reject) => {
         const sql = `INSERT INTO api_tokens(token_name, service_name, token_value, description, token_type, expiry_date) VALUES (?, ?, ?, ?, ?, ?)`;
         const params = [
@@ -75,7 +73,7 @@ exports.addToken = (tokenData) => {
     });
 }
 
-exports.deleteToken = (id) => {
+function deleteToken(id) {
     return new Promise((resolve, reject) => {
         const sql = `DELETE FROM api_tokens WHERE id = ?`
         db.run(sql, [id], function(err) {
