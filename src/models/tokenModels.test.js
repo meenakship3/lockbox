@@ -9,7 +9,7 @@ describe('token crud operations', () => {
             try {
                 await tokenModel.deleteToken(id);
             } catch(err) {
-                console.log("All clean already!", err)
+                console.log("All clean already!")
             }
         }
         console.log("Cleanup complete!")    
@@ -99,7 +99,6 @@ describe('token crud operations', () => {
     });
 
 // updateToken tests
-
 describe('updateToken', () => {
     let tokenId;
 
@@ -171,7 +170,6 @@ describe('updateToken', () => {
 });
 
 // deleteToken tests
-
 describe('deleteToken', () => {
     test('deletes existing token', async () => {
         const token = await tokenModel.addToken({
@@ -234,8 +232,7 @@ describe('deleteToken', () => {
 });
 
 // integrated tests
-
-describe('Integration Tests', () => {
+describe('integration tests', () => {
         test('complete CRUD lifecycle', async () => {
             // 1. CREATE
             const newToken = await tokenModel.addToken({
@@ -307,5 +304,351 @@ describe('Integration Tests', () => {
                 await tokenModel.deleteToken(id);
             }
         });
+    });
+
+// encryption tests
+    describe('encryption tests', () => {
+        test('tokens are stored encrypted in db', async () => {
+            const testData = {
+                tokenName: 'Encryption Test',
+                serviceName: 'Test Service',
+                tokenValue: 'plaintext_secret_123',
+                tokenType: 'API_KEY'
+            };
+
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            const rawDb = require('./db');
+
+            const row = await new Promise((resolve, reject) => {
+                rawDb.get('SELECT token_value FROM api_tokens WHERE id = ?', [newToken.id], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            })
+                // Encrypted value should NOT equal plaintext
+                expect(row.token_value).not.toBe('plaintext_secret_123');
+                // Encrypted value should contain : separators (iv:ciphertext:tag)
+                expect(row.token_value).toContain(':');
+                // Should have 3 parts
+                expect(row.token_value.split(':').length).toBe(3);
+        });
+
+        test('decryption returns original value', async () => {
+            const originalValue = 'my_secret_token_xyz';
+            const testData = {
+                tokenName: 'Decrypt Test',
+                serviceName: 'Test Service',
+                tokenValue: originalValue,
+                tokenType: 'API_KEY'
+            };
+
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+
+            const [decryptedToken] = await tokenModel.getTokensById([newToken.id]);
+
+            expect(decryptedToken.value).toBe(originalValue);
+        });
+
+        test('encryption round-trip preserves data', async () => {
+            const testValues = [
+                'simple_token',
+                'token-with-dashes',
+                'token_with_underscores',
+                'TokenWithMixedCase123',
+                'token.with.dots',
+                'very_long_token_' + 'x'.repeat(500)
+            ];
+            for (const value of testValues) {
+                const token = await tokenModel.addToken({
+                    tokenName: `Test ${value.substring(0, 10)}`,
+                    serviceName: 'Round Trip Test',
+                    tokenValue: value,
+                    tokenType: 'API_KEY'
+                });
+                createdTokenIds.push(token.id);
+
+                const [retrieved] = await tokenModel.getTokensById([token.id]);
+                expect(retrieved.value).toBe(value);
+            }
+        })
+    });
+
+// edge case tests
+    describe('edge case tests', () => {
+        test('handles empty token value', async () => {
+            const testData = {
+                tokenName: 'Empty Token',
+                serviceName: 'Test Service',
+                tokenValue: '',  
+                tokenType: 'API_KEY'
+            };
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.value).toBe('');
+        });
+
+        test('handles very long token values', async () => {
+            const longToken = 'ghp_' + 'a'.repeat(1000); // 1000+ character token
+            const testData = {
+                tokenName: 'Long Token',
+                serviceName: 'GitHub',
+                tokenValue: longToken,
+                tokenType: 'PERSONAL_ACCESS_TOKEN'
+            };
+            
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.value).toBe(longToken);
+            expect(retrieved.value.length).toBe(1004);
+        });
+
+        test('handles special characters in token values', async () => {
+            const specialChars = 'token!@#$%^&*(){}[]|\\:";\'<>?,./~`';
+            const testData = {
+                tokenName: 'Special Chars',
+                serviceName: 'Test',
+                tokenValue: specialChars,
+                tokenType: 'API_KEY'
+            };
+            
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.value).toBe(specialChars);
+        });
+
+        test('handles unicode characters', async () => {
+            const unicode = '🔐 Secret Token 密钥 🗝️';
+            const testData = {
+                tokenName: 'Unicode Test',
+                serviceName: 'Test',
+                tokenValue: unicode,
+                tokenType: 'API_KEY'
+            };
+            
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.value).toBe(unicode);
+        });
+    
+        test('getTokensById returns empty array for empty input', async () => {
+            const tokens = await tokenModel.getTokensById([]);
+            expect(tokens).toEqual([]);
+        });
+
+        test('getTokensById returns empty array for null input', async () => {
+            const tokens = await tokenModel.getTokensById(null);
+            expect(tokens).toEqual([]);
+        });
+    
+        test('getTokensById handles non-existent IDs gracefully', async () => {
+            const tokens = await tokenModel.getTokensById(['99999', '88888']);
+            expect(tokens).toEqual([]);
+        });
+
+        test('getTokensById handles mix of valid and invalid IDs', async () => {
+            const validToken = await tokenModel.addToken({
+                tokenName: 'Valid Token',
+                serviceName: 'Test',
+                tokenValue: 'valid_123',
+                tokenType: 'API_KEY'
+            });
+            createdTokenIds.push(validToken.id);
+            
+            // Mix valid and invalid IDs
+            const tokens = await tokenModel.getTokensById([validToken.id, '99999']);
+            
+            expect(tokens.length).toBe(1);
+            expect(tokens[0].id).toBe(validToken.id);
+        });
+
+        test('handles missing optional fields', async () => {
+            const minimalData = {
+                tokenName: 'Minimal',
+                serviceName: 'Service',
+                tokenValue: 'value_123',
+                tokenType: 'API_KEY'
+                // No description, no expiryDate
+            };
+            
+            const newToken = await tokenModel.addToken(minimalData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.description).toBeFalsy();
+            expect(retrieved.expiryDate).toBeFalsy();
+        });
+
+        test('prevents SQL injection in token values', async () => {
+            const sqlInjection = "'; DROP TABLE api_tokens; --";
+            const testData = {
+                tokenName: 'SQL Injection Test',
+                serviceName: 'Security Test',
+                tokenValue: sqlInjection,
+                tokenType: 'API_KEY'
+            };
+            
+            const newToken = await tokenModel.addToken(testData);
+            createdTokenIds.push(newToken.id);
+            
+            // Verify token was stored safely
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.value).toBe(sqlInjection);
+            
+            // Verify table still exists by querying it
+            const allTokens = await tokenModel.getTokens();
+            expect(allTokens).toBeDefined();
+        });
+
+        test('handles concurrent token creation', async () => {
+            const promises = [];
+            for (let i = 0; i < 10; i++) {
+                promises.push(
+                    tokenModel.addToken({
+                        tokenName: `Concurrent ${i}`,
+                        serviceName: 'Test',
+                        tokenValue: `value_${i}`,
+                        tokenType: 'API_KEY'
+                    })
+                );
+            }
+            
+            const tokens = await Promise.all(promises);
+            tokens.forEach(t => createdTokenIds.push(t.id));
+            
+            expect(tokens.length).toBe(10);
+            // All IDs should be unique
+            const ids = tokens.map(t => t.id);
+            const uniqueIds = new Set(ids);
+            expect(uniqueIds.size).toBe(10);
+        });
+    });
+
+    // error handling tests
+    describe('error handling', ()=> {
+        test('updateToken fails gracefully with encryption error', async () => {
+            // First create a token
+            const token = await tokenModel.addToken({
+                tokenName: 'Test',
+                serviceName: 'Test',
+                tokenValue: 'test_123',
+                tokenType: 'API_KEY'
+            });
+            createdTokenIds.push(token.id);
+
+            const updates = {
+                tokenName: 'Updated',
+                serviceName: 'Updated',
+                tokenValue: null, // This should cause issues
+                tokenType: 'API_KEY'
+            };
+            
+            await expect(
+                tokenModel.updateToken(token.id, updates)
+            ).rejects.toThrow();
+        });
+
+        test('addToken fails with missing required fields', async () => {
+            const invalidData = {
+                tokenName: 'Test',
+                // Missing serviceName, tokenValue, tokenType
+            };
+            
+            await expect(
+                tokenModel.addToken(invalidData)
+            ).rejects.toThrow();
+        });
+
+        test('handles database constraint violations gracefully', async () => {
+            const testData = {
+                tokenName: 'Constraint Test',
+                serviceName: 'Test',
+                tokenValue: 'value_123',
+                tokenType: 'INVALID_TYPE'  // Not in CHECK constraint
+            };
+            
+            await expect(
+                tokenModel.addToken(testData)
+            ).rejects.toThrow();
+        });
+    });
+
+    // boundary tests
+    describe('boundary tests', () => {
+        test('handles token with all fields at maximum length', async () => {
+            const maxLengthData = {
+                tokenName: 'a'.repeat(255),  // Assuming VARCHAR(255)
+                serviceName: 'b'.repeat(255),
+                tokenValue: 'c'.repeat(1000),
+                description: 'd'.repeat(500),
+                tokenType: 'PERSONAL_ACCESS_TOKEN', // Longest valid type
+                expiryDate: '9999-12-31'
+            };
+            
+            const newToken = await tokenModel.addToken(maxLengthData);
+            createdTokenIds.push(newToken.id);
+            
+            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
+            expect(retrieved.token).toBe(maxLengthData.tokenName);
+            expect(retrieved.value).toBe(maxLengthData.tokenValue);
+        });
+
+        test('getTokensById handles large array of IDs', async () => {
+            // Create 50 tokens
+            const ids = [];
+            for (let i = 0; i < 50; i++) {
+                const token = await tokenModel.addToken({
+                    tokenName: `Batch ${i}`,
+                    serviceName: 'Test',
+                    tokenValue: `value_${i}`,
+                    tokenType: 'API_KEY'
+                });
+                ids.push(token.id);
+                createdTokenIds.push(token.id);
+            }
+            
+            // Retrieve all 50
+            const tokens = await tokenModel.getTokensById(ids);
+            expect(tokens.length).toBe(50);
+        });
+
+        test('handles rapid successive operations', async () => {
+            // Create
+            const token = await tokenModel.addToken({
+                tokenName: 'Rapid Test',
+                serviceName: 'Test',
+                tokenValue: 'value_1',
+                tokenType: 'API_KEY'
+            });
+            createdTokenIds.push(token.id);
+            
+            // Update immediately
+            await tokenModel.updateToken(token.id, {
+                tokenName: 'Updated',
+                serviceName: 'Test',
+                tokenValue: 'value_2',
+                tokenType: 'API_KEY'
+            });
+            
+            // Read immediately
+            const [retrieved] = await tokenModel.getTokensById([token.id]);
+            expect(retrieved.value).toBe('value_2');
+            // Delete immediately
+            await tokenModel.deleteToken(token.id);
+            
+            // Verify deleted
+            const tokens = await tokenModel.getTokensById([token.id]);
+            expect(tokens.length).toBe(0);
+        });
+        
     });
 });

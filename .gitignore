@@ -3,7 +3,7 @@ node_modules/
 .vscode/
 package-lock.json
 npm-debug.log*
-src/.env
+.env
 
 # Build artifacts
 dist/
