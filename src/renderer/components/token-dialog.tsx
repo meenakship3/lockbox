@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Token, TokenData } from '@/types/electron';
 import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 
 interface TokenDialogProps {
   open: boolean;
@@ -18,7 +19,29 @@ interface TokenDialogProps {
 }
 
 export function TokenDialog({ open, onOpenChange, mode, tokenData }: TokenDialogProps) {
-  const { addToken, updateToken } = useTokens();
+  const { addToken, updateToken, getDecryptedTokens } = useTokens();
+  const [decryptedToken, setDecryptedToken] = useState<Token | undefined>();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchDecrypted = async () => {
+      if (mode === "edit" && tokenData && open) {
+        setLoading(true);
+        try {
+          const decrypted = await getDecryptedTokens([tokenData.id]);
+          if (decrypted && decrypted.length > 0) {
+            setDecryptedToken(decrypted[0]);
+          }
+        } catch (error) {
+          console.error("Failed to decrypt token:", error);
+          toast.error("Failed to load token value");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    fetchDecrypted();
+  }, [mode, tokenData, open]);
 
   const handleSubmit = async (formData: TokenData) => {
     try {
@@ -52,12 +75,18 @@ export function TokenDialog({ open, onOpenChange, mode, tokenData }: TokenDialog
               : 'Update the details of your token.'}
           </DialogDescription>
         </DialogHeader>
-        <TokenForm
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
+          </div>
+        ) : (
+          <TokenForm
           mode={mode}
-          initialData={tokenData}
+          initialData={mode === 'edit' ? decryptedToken : tokenData}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
         />
+        )}
       </DialogContent>
     </Dialog>
   );

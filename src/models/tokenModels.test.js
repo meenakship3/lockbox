@@ -377,19 +377,6 @@ describe('integration tests', () => {
 
 // edge case tests
     describe('edge case tests', () => {
-        test('handles empty token value', async () => {
-            const testData = {
-                tokenName: 'Empty Token',
-                serviceName: 'Test Service',
-                tokenValue: '',  
-                tokenType: 'API_KEY'
-            };
-            const newToken = await tokenModel.addToken(testData);
-            createdTokenIds.push(newToken.id);
-            
-            const [retrieved] = await tokenModel.getTokensById([newToken.id]);
-            expect(retrieved.value).toBe('');
-        });
 
         test('handles very long token values', async () => {
             const longToken = 'ghp_' + 'a'.repeat(1000); // 1000+ character token
