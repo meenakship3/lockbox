@@ -21,11 +21,9 @@ jest.mock('electron', () => ({
 }));
 
 describe('Notification Service', () => {
-    let notificationService;
-
     beforeAll(() => {
-        // Import after mocking
-        notificationService = require('../../main/notificationService.cjs');
+        // Import after mocking to ensure mocks are in place
+        require('../../main/notificationService.cjs');
     });
 
     describe('Date Calculations', () => {
@@ -90,7 +88,6 @@ describe('Notification Service', () => {
 
             // Expected format from formatNotificationContent
             const expectedTitle = `${token.service_name} token expiring soon`;
-            const expectedBodyPattern = /expires in 7 days/i;
 
             expect(expectedTitle).toContain('GitHub');
             expect(expectedTitle).toContain('expiring soon');

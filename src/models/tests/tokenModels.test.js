@@ -8,7 +8,7 @@ describe('token crud operations', () => {
         for (const id of createdTokenIds) {
             try {
                 await tokenModel.deleteToken(id);
-            } catch(err) {
+            } catch {
                 console.log("All clean already!")
             }
         }
