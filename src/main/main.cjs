@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const tokenModel = require('../models/tokenModels');
+const notificationService = require('./notificationService.cjs');
+
+// Set app name for notifications (important for macOS)
+app.name = 'Chinese Whispers';
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -68,6 +72,13 @@ ipcMain.handle('tokens:delete', async (event, id) => {
     }
 })
 
+// const NOTIFICATION_TITLE = 'Basic Notification'
+// const NOTIFICATION_BODY = 'Notification from the Main process'
+
+// function showNotification () {
+//   new Notification({ title: NOTIFICATION_TITLE, body: NOTIFICATION_BODY }).show()
+// }
+
 app.whenReady().then(() => {
     // Handle file save dialog
     ipcMain.handle('save-file', async (event, { defaultPath, content }) => {
@@ -85,7 +96,9 @@ app.whenReady().then(() => {
         }
     });
 
-    createWindow()
+    createWindow();
+    // showNotification();
+    notificationService.startNotificationScheduler();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

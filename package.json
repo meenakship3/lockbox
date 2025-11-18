@@ -12,7 +12,11 @@
     "build:renderer": "vite build",
     "build": "npm run build:renderer",
     "start": "electron .",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "test:notifications": "jest models-test/notification",
+    "test:watch": "jest --watch",
+    "test:e2e": "echo 'E2E tests not yet implemented' && exit 0",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

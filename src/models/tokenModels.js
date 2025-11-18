@@ -65,27 +65,59 @@ function getTokensById(ids) {
 
 function updateToken(id, updates) {
     return new Promise((resolve, reject) => {
-        const encryptedValue = encrypt(ENCRYPTION_KEY, updates.tokenValue);
-        const sql = `UPDATE api_tokens SET token_name = ?, service_name = ?, token_value = ?, description = ?, token_type = ?, expiry_date = ? WHERE id = ?`;
-        const params = [
-            updates.tokenName,
-            updates.serviceName, 
-            encryptedValue, 
-            updates.description,
-            updates.tokenType,
-            updates.expiryDate,
-            id
-        ];
+        const fields = [];
+        const params = [];
+
+        if (updates.serviceName) {
+            fields.push('service_name = ?');
+            params.push(updates.serviceName);
+        }
+        if (updates.tokenName) {
+            fields.push('token_name = ?');
+            params.push(updates.tokenName);
+        }
+        if (updates.tokenValue) {
+            const encryptedValue = encrypt(updates.tokenValue, ENCRYPTION_KEY);
+            fields.push('token_value = ?');
+            params.push(encryptedValue);
+        }
+        if (updates.description !== undefined) {
+            fields.push('description = ?');
+            params.push(updates.description);
+        }
+        if (updates.tokenType) {
+            fields.push('token_type = ?');
+            params.push(updates.tokenType);
+        }
+        if (updates.expiryDate !== undefined) {
+            fields.push('expiry_date = ?');
+            params.push(updates.expiryDate);
+        }
+
+        params.push(id);
+
+        const sql = `UPDATE api_tokens SET ${fields.join(', ')} WHERE id = ?`;
 
         db.run(sql, params, function(err) {
             if (err) {
                 reject(err);
                 return;
             }
-            if (this.changes === 0) {
-                reject(new Error(`Token with id ${id} not found`));
+
+            if (updates.expiryDate !== undefined) {
+                const notificationModels = require('./notificationModels');
+                notificationModels.clearNotificationHistory(id)
+                    .then(() => {
+                        console.log(`Cleared notification history for token ${id}`);
+                        resolve({ id: String(id), ...updates });
+                    })
+                    .catch((clearErr) => {
+                        console.error('Error clearing notification history:', clearErr);
+                        resolve({ id: String(id), ...updates });
+                    });
+            } else {
+                resolve({ id: String(id), ...updates });
             }
-            resolve({ id: String(id), ...updates });
         });
     });
 }

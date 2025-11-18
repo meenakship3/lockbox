@@ -25,7 +25,7 @@ CREATE TABLE notification_history (
     notification_type TEXT CHECK(notification_type IN ('EXPIRY_WARNING', 'EXPIRED', 'CUSTOM')),
     sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     message TEXT,
-    was_acknowledged BOOLEAN DEFAULT 0,
+    was_acknowledged BOOLEAN DEFAULT 0, days_before_expiry INTEGER, notification_category TEXT CHECK(notification_category IN ('SEVEN_DAYS', 'ONE_DAY', 'EXPIRED')),
     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE
 );
 CREATE TABLE tags (
@@ -49,27 +49,23 @@ CREATE TABLE audit_log (
     details TEXT,
     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL
 );
-
 CREATE INDEX idx_tokens_expiry ON api_tokens(expiry_date) WHERE is_active = 1;
-CREATE INDEX idx_tokens_service ON api_tokens(service_name);
-CREATE INDEX idx_tokens_active ON api_tokens(is_active);
-CREATE INDEX idx_notifications_pending ON notification_settings(token_id) WHERE notification_enabled = 1;
-CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
-CREATE INDEX idx_audit_token ON audit_log(token_id);
-
 CREATE TRIGGER update_token_timestamp 
 AFTER UPDATE ON api_tokens
 BEGIN
     UPDATE api_tokens SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
-
+CREATE INDEX idx_tokens_service ON api_tokens(service_name);
+CREATE INDEX idx_tokens_active ON api_tokens(is_active);
+CREATE INDEX idx_notifications_pending ON notification_settings(token_id) WHERE notification_enabled = 1;
+CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
+CREATE INDEX idx_audit_token ON audit_log(token_id);
 CREATE TRIGGER log_token_deletion
 BEFORE DELETE ON api_tokens
 BEGIN
     INSERT INTO audit_log (token_id, action, details)
     VALUES (OLD.id, 'DELETE', 'Token: ' || OLD.token_name || ' for ' || OLD.service_name);
 END;
-
 CREATE TRIGGER auto_create_notification_settings
 AFTER INSERT ON api_tokens
 WHEN NEW.expiry_date IS NOT NULL
