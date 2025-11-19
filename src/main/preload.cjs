@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("api", {
         setup: (password) => ipcRenderer.invoke('auth:setup', password),
         verify: (password) => ipcRenderer.invoke('auth:verify', password),
         isTouchIDAvailable: () => ipcRenderer.invoke('auth:isTouchIDAvailable'),
-        authenticateWithTouchID: () => ipcRenderer.invoke('auth:authenticateWithTouchID')
+        authenticateWithTouchID: () => ipcRenderer.invoke('auth:authenticateWithTouchID'),
+        lock: () => ipcRenderer.invoke('auth:lock')
     }
 });

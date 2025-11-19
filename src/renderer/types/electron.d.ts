@@ -36,6 +36,7 @@ export interface IElectronAPI {
         verify: (password: string) => Promise<AuthResult>;
         isTouchIDAvailable: () => Promise<boolean>;
         authenticateWithTouchID: () => Promise<AuthResult>;
+        lock: () => Promise<AuthResult>;
     };
 }
 

@@ -7,9 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
 import { Plus, Download, RefreshCw, ShieldCheck, HardDrive } from 'lucide-react';
 import { Token } from '@/types/electron';
+import { useAutoLock } from '@/hooks/useAutoLock';
+import { toast } from 'sonner';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleLock = async () => {
+    try {
+      await window.api.auth.lock();
+      setIsAuthenticated(false);
+      toast.info('App locked due to inactivity');
+    } catch (error) {
+      console.error('Lock error:', error);
+    }
+  };
+
+  // Enable auto-lock only when authenticated
+  useAutoLock({
+    onLock: handleLock,
+    enabled: isAuthenticated
+  });
 
   if (!isAuthenticated) {
     return (

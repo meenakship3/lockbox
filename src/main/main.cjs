@@ -6,7 +6,7 @@ const notificationService = require('./notificationService.cjs');
 const authService = require('./authService.cjs');
 
 // Set app name for notifications (important for macOS)
-app.name = 'Chinese Whispers';
+app.name = 'EnvVault';
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -123,6 +123,11 @@ ipcMain.handle('auth:authenticateWithTouchID', async () => {
     } catch (error) {
         return { success: false, error: error.message }
     }
+});
+
+ipcMain.handle('auth:lock', () => {
+    authService.lock();
+    return { success: true };
 });
 
 
