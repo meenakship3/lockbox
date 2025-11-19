@@ -27,27 +27,27 @@ CREATE TABLE notification_history (
     was_acknowledged BOOLEAN DEFAULT 0, days_before_expiry INTEGER, notification_category TEXT CHECK(notification_category IN ('SEVEN_DAYS', 'ONE_DAY', 'EXPIRED')), notification_message TEXT,
     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE
 );
-CREATE TABLE tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tag_name TEXT NOT NULL UNIQUE,
-    color TEXT DEFAULT '#3B82F6',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE token_tags (
-    token_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
-    PRIMARY KEY (token_id, tag_id),
-    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-);
-CREATE TABLE audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    token_id INTEGER,
-    action TEXT NOT NULL CHECK(action IN ('CREATE', 'READ', 'UPDATE', 'DELETE', 'EXPORT', 'COPY')),
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    details TEXT,
-    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL
-);
+-- CREATE TABLE tags (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     tag_name TEXT NOT NULL UNIQUE,
+--     color TEXT DEFAULT '#3B82F6',
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+-- );
+-- CREATE TABLE token_tags (
+--     token_id INTEGER NOT NULL,
+--     tag_id INTEGER NOT NULL,
+--     PRIMARY KEY (token_id, tag_id),
+--     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE,
+--     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+-- );
+-- CREATE TABLE audit_log (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     token_id INTEGER,
+--     action TEXT NOT NULL CHECK(action IN ('CREATE', 'READ', 'UPDATE', 'DELETE', 'EXPORT', 'COPY')),
+--     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     details TEXT,
+--     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL
+-- );
 CREATE TABLE IF NOT EXISTS auth_config (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   password_hash TEXT NOT NULL,

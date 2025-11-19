@@ -4,6 +4,8 @@ node_modules/
 npm-debug.log*
 .env
 todo.md
+src/models/auditModel.js
+src/models/tagModel.js
 
 # Test coverage
 coverage/

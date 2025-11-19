@@ -161,7 +161,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             )}
           </div>
           <CardTitle className="text-2xl text-center">
-            {isSetup ? 'Unlock EnvVault' : 'Welcome to EnvVault'}
+            {isSetup ? 'Unlock Lockbox' : 'Welcome to Lockbox'}
           </CardTitle>
           <CardDescription className="text-center">
             {isSetup

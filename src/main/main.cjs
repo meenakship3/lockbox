@@ -6,7 +6,7 @@ const notificationService = require('./notificationService.cjs');
 const authService = require('./authService.cjs');
 
 // Set app name for notifications (important for macOS)
-app.name = 'EnvVault';
+app.name = 'Lockbox';
 
 function createWindow() {
     const win = new BrowserWindow({

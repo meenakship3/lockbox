@@ -208,7 +208,7 @@ function AuthenticatedApp() {
             <ShieldCheck className="h-6 w-6 text-emerald-300" />
           </div>
           <div className="leading-tight">
-            <div className="text-xl font-bold tracking-[0.08em] font-mono">EnvVault</div>
+            <div className="text-xl font-bold tracking-[0.08em] font-mono">Lockbox</div>
             <div className="text-xs text-neutral-300 font-mono tracking-widest">Secure Token Management</div>
           </div>
           <div className="ml-auto flex items-center gap-2 text-xs text-neutral-300 font-mono">

@@ -35,7 +35,7 @@ def authenticate():
     # Trigger Touch ID prompt
     context.evaluatePolicy_localizedReason_reply_(
         kLAPolicyDeviceOwnerAuthenticationWithBiometrics,
-        "Unlock EnvVault",
+        "Unlock Lockbox",
         completion_handler,
     )
 
