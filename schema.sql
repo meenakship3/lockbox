@@ -48,6 +48,12 @@ CREATE TABLE audit_log (
     details TEXT,
     FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL
 );
+CREATE TABLE IF NOT EXISTS auth_config (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  password_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 CREATE INDEX idx_tokens_expiry ON api_tokens(expiry_date) WHERE is_active = 1;
 CREATE TRIGGER update_token_timestamp 
 AFTER UPDATE ON api_tokens
