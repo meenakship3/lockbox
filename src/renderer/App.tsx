@@ -5,7 +5,7 @@ import { TokenTable } from '@/components/token-table';
 import { TokenDialog } from '@/components/token-dialog';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/sonner';
-import { Plus, Download, RefreshCw, ShieldCheck, HardDrive } from 'lucide-react';
+import { Plus, Download, RefreshCw, ShieldCheck, HardDrive, Copy, Trash2 } from 'lucide-react';
 import { Token } from '@/types/electron';
 import { useAutoLock } from '@/hooks/useAutoLock';
 import { toast } from 'sonner';
@@ -46,6 +46,7 @@ function AuthenticatedApp() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
   const [selectedToken, setSelectedToken] = useState<Token | undefined>();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const tokensPerPage = 10;
   
@@ -87,9 +88,32 @@ function AuthenticatedApp() {
     }
   };
 
-  const handleExportEnv = () => {
-    const envContent = tokens
-      .map(t => `${t.service.toUpperCase().replace(/\s+/g, '_')}=${t.value}`)
+  const handleExportEnv = async (selectedOnly = false) => {
+    // Get tokens to export (selected or all)
+    const tokensToExport = selectedOnly
+      ? tokens.filter(t => selectedIds.includes(t.id))
+      : tokens;
+
+    if (tokensToExport.length === 0) {
+      toast.error('No tokens to export');
+      return;
+    }
+
+    // Get decrypted tokens
+    const decryptedTokens = await getDecryptedTokens(tokensToExport.map(t => t.id));
+
+    if (!decryptedTokens || decryptedTokens.length === 0) {
+      toast.error('Failed to decrypt tokens');
+      return;
+    }
+
+    // Create .env format: SERVICENAME_TOKENNAME=value
+    const envContent = decryptedTokens
+      .map(t => {
+        const serviceName = t.service.toUpperCase().replace(/\s+/g, '_');
+        const tokenName = t.token.toUpperCase().replace(/\s+/g, '_');
+        return `${serviceName}_${tokenName}=${t.value}`;
+      })
       .join('\n');
 
     // Trigger download
@@ -100,6 +124,44 @@ function AuthenticatedApp() {
     a.download = '.env';
     a.click();
     URL.revokeObjectURL(url);
+
+    // Wait for download to initiate before showing success
+    setTimeout(() => {
+      toast.success(`Exported ${decryptedTokens.length} token(s) as .env file`);
+    }, 5000);
+  };
+
+  const handleExportBash = async () => {
+    if (selectedIds.length === 0) {
+      toast.error('No tokens selected');
+      return;
+    }
+
+    // Get decrypted selected tokens
+    const decryptedTokens = await getDecryptedTokens(selectedIds);
+
+    if (!decryptedTokens || decryptedTokens.length === 0) {
+      toast.error('Failed to decrypt tokens');
+      return;
+    }
+
+    // Create bash export format: export SERVICENAME_TOKENNAME="value"
+    const bashContent = decryptedTokens
+      .map(t => {
+        const serviceName = t.service.toUpperCase().replace(/\s+/g, '_');
+        const tokenName = t.token.toUpperCase().replace(/\s+/g, '_');
+        return `export ${serviceName}_${tokenName}="${t.value}"`;
+      })
+      .join('\n');
+
+    // Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(bashContent);
+      toast.success(`Copied ${decryptedTokens.length} token(s) as bash exports to clipboard`);
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+      console.error('Clipboard error:', error);
+    }
   };
 
   if (loading) {
@@ -179,16 +241,39 @@ function AuthenticatedApp() {
 
           <Button
             variant="outline"
-            onClick={handleExportEnv}
-            disabled={tokens.length === 0}
+            onClick={() => handleExportEnv(true)}
+            disabled={selectedIds.length === 0}
             className="font-mono"
           >
             <Download className="w-4 h-4 mr-2" />
             Export .env
           </Button>
 
+          <Button
+            variant="outline"
+            onClick={handleExportBash}
+            disabled={selectedIds.length === 0}
+            className="font-mono"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Copy Bash
+          </Button>
+
+          <Button
+            variant="destructive"
+            onClick={() => handleDeleteTokens(selectedIds)}
+            disabled={selectedIds.length === 0}
+            className="font-mono"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+
           <div className="ml-auto text-xs text-neutral-500 font-mono">
-            {tokens.length} {tokens.length === 1 ? 'token' : 'tokens'}
+            {selectedIds.length > 0
+              ? `${selectedIds.length} selected`
+              : `${tokens.length} ${tokens.length === 1 ? 'token' : 'tokens'}`
+            }
           </div>
         </div>
 
@@ -198,6 +283,7 @@ function AuthenticatedApp() {
             tokens={paginatedTokens}
             onEdit={handleEditToken}
             onDelete={handleDeleteTokens}
+            onSelectionChange={setSelectedIds}
             getDecryptedTokens={async (ids) => {
               const result = await getDecryptedTokens(ids);
               return result || [];

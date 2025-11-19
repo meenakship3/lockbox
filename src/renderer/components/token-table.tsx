@@ -94,12 +94,6 @@ export function TokenTable({ tokens, onEdit, onDelete, onSelectionChange, getDec
     setVisibleTokens(newVisible);
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedIds.size > 0) {
-      onDelete(Array.from(selectedIds));
-      setSelectedIds(new Set());
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -117,23 +111,6 @@ export function TokenTable({ tokens, onEdit, onDelete, onSelectionChange, getDec
 
   return (
     <div className="space-y-4">
-      {/* Bulk Actions */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 p-2 bg-neutral-100 rounded border">
-          <span className="text-sm text-neutral-600">
-            {selectedIds.size} selected
-          </span>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleDeleteSelected}
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Delete Selected
-          </Button>
-        </div>
-      )}
-
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
